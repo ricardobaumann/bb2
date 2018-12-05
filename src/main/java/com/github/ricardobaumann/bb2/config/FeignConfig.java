@@ -1,4 +1,4 @@
-package com.github.ricardobaumann.bb2;
+package com.github.ricardobaumann.bb2.config;
 
 import feign.Response;
 import feign.RetryableException;
@@ -10,8 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Slf4j
 @Configuration
-class DummyRepoConfig {
-
+class FeignConfig {
 
     @Bean
     ErrorDecoder errorDecoder() {
