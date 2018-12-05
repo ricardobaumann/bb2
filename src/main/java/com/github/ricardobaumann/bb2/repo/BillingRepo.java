@@ -1,5 +1,6 @@
 package com.github.ricardobaumann.bb2.repo;
 
+import com.github.ricardobaumann.bb2.dto.LimitsResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;

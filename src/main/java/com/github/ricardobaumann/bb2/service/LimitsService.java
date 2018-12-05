@@ -1,9 +1,9 @@
 package com.github.ricardobaumann.bb2.service;
 
 import com.github.ricardobaumann.bb2.dto.Limits;
+import com.github.ricardobaumann.bb2.dto.LimitsResponse;
 import com.github.ricardobaumann.bb2.model.UserFeature;
 import com.github.ricardobaumann.bb2.repo.BillingRepo;
-import com.github.ricardobaumann.bb2.repo.LimitsResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

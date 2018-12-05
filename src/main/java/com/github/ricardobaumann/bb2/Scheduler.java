@@ -4,8 +4,8 @@ import com.github.ricardobaumann.bb2.model.UserSettings;
 import com.github.ricardobaumann.bb2.repo.BillingRepo;
 import com.github.ricardobaumann.bb2.repo.DummyRepo;
 import com.github.ricardobaumann.bb2.repo.FeatureSettingRepo;
-import com.github.ricardobaumann.bb2.service.BookingService;
 import com.github.ricardobaumann.bb2.service.ProblematicService;
+import com.github.ricardobaumann.bb2.service.UserSettingService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -26,18 +26,18 @@ public class Scheduler {
     private final ProblematicService problematicService;
     private final DummyRepo dummyRepo;
     private BillingRepo billingRepo;
-    private BookingService bookingService;
+    private UserSettingService userSettingService;
 
     public Scheduler(FeatureSettingRepo featureSettingRepo,
                      ExecutorService executorService,
                      ProblematicService problematicService,
-                     DummyRepo dummyRepo, BillingRepo billingRepo, BookingService bookingService) {
+                     DummyRepo dummyRepo, BillingRepo billingRepo, UserSettingService userSettingService) {
         this.featureSettingRepo = featureSettingRepo;
         this.executorService = executorService;
         this.problematicService = problematicService;
         this.dummyRepo = dummyRepo;
         this.billingRepo = billingRepo;
-        this.bookingService = bookingService;
+        this.userSettingService = userSettingService;
     }
 
     @Scheduled(fixedDelay = Integer.MAX_VALUE, initialDelay = 5000)
@@ -71,7 +71,7 @@ public class Scheduler {
     }
 
     private void processFeatureSetting(UserSettings userSettings) {
-        bookingService.process(userSettings);
+        userSettingService.process(userSettings);
     }
 
 }
