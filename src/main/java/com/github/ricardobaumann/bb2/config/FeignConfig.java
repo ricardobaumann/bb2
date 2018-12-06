@@ -17,9 +17,9 @@ class FeignConfig {
         return new ErrorDecoder.Default() {
             @Override
             public Exception decode(String s, Response response) {
-                if (409 == response.status()) {
-                    log.info("Handling 409");
-                    return new RetryableException("getting conflict and retry", null);
+                if (response.status() >= 500) {
+                    log.info("Retrying {}", response.status());
+                    return new RetryableException("Retrying", null);
                 } else {
                     return super.decode(s, response);
                 }
@@ -29,6 +29,6 @@ class FeignConfig {
 
     @Bean
     Retryer retryer() {
-        return new Retryer.Default(1, 100, 2);
+        return new Retryer.Default(1, 100, 3);
     }
 }

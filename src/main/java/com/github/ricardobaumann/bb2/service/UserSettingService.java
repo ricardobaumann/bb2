@@ -1,6 +1,7 @@
 package com.github.ricardobaumann.bb2.service;
 
 import com.github.ricardobaumann.bb2.dto.Ad;
+import com.github.ricardobaumann.bb2.dto.FeatureChange;
 import com.github.ricardobaumann.bb2.model.UserFeature;
 import com.github.ricardobaumann.bb2.model.UserSettings;
 import com.github.ricardobaumann.bb2.repo.FeatureSettingRepo;
@@ -47,6 +48,7 @@ public class UserSettingService {
 
         Stream.of(UserFeature.Feature.values())
                 .forEach(feature -> scheduleFeature(
+                        userSettings.getCustomerId(),
                         inventory,
                         feature,
                         limits.getOrDefault(feature, 0),
@@ -56,11 +58,18 @@ public class UserSettingService {
         featureSettingRepo.save(userSettings);
     }
 
-    private void scheduleFeature(List<Ad> inventory,
+    private void scheduleFeature(Long customerId, List<Ad> inventory,
                                  UserFeature.Feature feature,
                                  Integer limit,
                                  Set<Long> currentAds) {
 
-        executorService.submit(() -> bookingService.handleFeature(inventory, feature, limit, currentAds));
+        executorService.submit(() -> bookingService.applyFeatureChange(
+                FeatureChange.builder()
+                        .currentAds(currentAds)
+                        .customerId(customerId)
+                        .feature(feature)
+                        .inventory(inventory)
+                        .limit(limit)
+                        .build()));
     }
 }
