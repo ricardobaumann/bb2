@@ -17,7 +17,7 @@ public interface BookingRepo {
             method = RequestMethod.PUT)
     Optional<BookingResponse> put(
             @PathVariable("customerId") long customerId,
-            @PathVariable("adId") String adId,
+            @PathVariable("adId") Long adId,
             @PathVariable("feature") String feature,
             @Param("X-Mobile-Initiator") String initiator);
 

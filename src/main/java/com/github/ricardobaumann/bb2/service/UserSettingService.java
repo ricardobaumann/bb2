@@ -2,6 +2,7 @@ package com.github.ricardobaumann.bb2.service;
 
 import com.github.ricardobaumann.bb2.dto.Ad;
 import com.github.ricardobaumann.bb2.dto.FeatureChange;
+import com.github.ricardobaumann.bb2.dto.FeatureResult;
 import com.github.ricardobaumann.bb2.model.UserFeature;
 import com.github.ricardobaumann.bb2.model.UserSettings;
 import com.github.ricardobaumann.bb2.repo.FeatureSettingRepo;
@@ -47,29 +48,47 @@ public class UserSettingService {
                 .add(userFeature.getAdId()));
 
         Stream.of(UserFeature.Feature.values())
-                .forEach(feature -> scheduleFeature(
+                .map(feature -> processFeature(
                         userSettings.getCustomerId(),
                         inventory,
                         feature,
                         limits.getOrDefault(feature, 0),
-                        adsByFeature.getOrDefault(feature, Collections.emptySet())));
+                        adsByFeature.getOrDefault(feature, Collections.emptySet())))
+                .forEach(featureResult -> updateUserSettings(userSettings, featureResult));
+    }
+
+    private void updateUserSettings(UserSettings userSettings,
+                                    FeatureResult featureResult) {
+
+        userSettings.getUserFeatures()//removing unbooked ads
+                .removeIf(userFeature -> userFeature.getFeature() == featureResult.getFeature()
+                        && featureResult.getAdsUnbooked().contains(userFeature.getAdId()));
+
+        featureResult.getAdsBooked().forEach(adId -> userSettings.getUserFeatures()//adding booked ads
+                .add(UserFeature.builder()
+                        .feature(featureResult.getFeature())
+                        .adId(adId)
+                        .userSettings(userSettings)
+                        .build()));
 
         userSettings.setProcessedAt(new Date());
         featureSettingRepo.save(userSettings);
     }
 
-    private void scheduleFeature(Long customerId, List<Ad> inventory,
-                                 UserFeature.Feature feature,
-                                 Integer limit,
-                                 Set<Long> currentAds) {
+    private FeatureResult processFeature(Long customerId, List<Ad> inventory,
+                                         UserFeature.Feature feature,
+                                         Integer limit,
+                                         Set<Long> currentAds) {
 
-        executorService.submit(() -> bookingService.applyFeatureChange(
+        return bookingService.applyFeatureChange(
                 FeatureChange.builder()
                         .currentAds(currentAds)
                         .customerId(customerId)
                         .feature(feature)
                         .inventory(inventory)
                         .limit(limit)
-                        .build()));
+                        .build());
+
+
     }
 }

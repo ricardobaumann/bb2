@@ -1,21 +1,20 @@
 package com.github.ricardobaumann.bb2.service;
 
 import com.github.ricardobaumann.bb2.dto.Ad;
-import com.github.ricardobaumann.bb2.dto.BookingResponse;
 import com.github.ricardobaumann.bb2.dto.FeatureChange;
-import com.github.ricardobaumann.bb2.dto.UnbookingResponse;
+import com.github.ricardobaumann.bb2.dto.FeatureResult;
 import com.github.ricardobaumann.bb2.model.UserFeature;
 import com.github.ricardobaumann.bb2.repo.BookingRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
 
-import javax.validation.Valid;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static org.springframework.util.CollectionUtils.isEmpty;
 
 @Slf4j
 @Service
-@Validated
 public class BookingService {
 
     private final BookingRepo bookingRepo;
@@ -24,48 +23,65 @@ public class BookingService {
         this.bookingRepo = bookingRepo;
     }
 
-    void applyFeatureChange(@Valid FeatureChange featureChange) {
-
-        if (featureChange.getLimit() > 0 && !featureChange.getInventory().isEmpty()) {
-            featureChange.getInventory()
+    FeatureResult applyFeatureChange(FeatureChange featureChange) {
+        FeatureResult.FeatureResultBuilder builder = FeatureResult.builder();
+        builder.feature(featureChange.getFeature());
+        if (featureChange.hasLimit() && !isEmpty(featureChange.getInventory())) {
+            builder.adsBooked(featureChange.getInventory()
                     .stream()
                     .limit(featureChange.getLimit())
-                    .forEach(ad -> book(ad, featureChange.getCustomerId(), featureChange.getFeature()));
+                    .peek(ad -> log.info("Trying to book ad {} for customerId {}", ad.getAdId(), featureChange.getCustomerId()))
+                    .map(ad -> book(ad, featureChange.getCustomerId(), featureChange.getFeature()))
+                    .peek(adId -> log.info("Ad {} for customerID {} was booked? {}", adId, featureChange.getCustomerId(), adId.isPresent()))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .collect(Collectors.toList()));
         } else {
-            if (featureChange.getLimit() < 0) {
-                featureChange.getCurrentAds()//TODO sorting it?
+            if (!featureChange.hasLimit() && !isEmpty(featureChange.getCurrentAds())) {
+                builder.adsUnbooked(featureChange.getCurrentAds()//TODO sorting it?
                         .stream()
                         .limit(-featureChange.getLimit())
-                        .forEach(adId -> unbook(adId, featureChange.getCustomerId(), featureChange.getFeature()));
+                        .peek(adId -> log.info("Trying to unbook ad {} for customerId {}", adId, featureChange.getCustomerId()))
+                        .map(adId -> unbook(adId, featureChange.getCustomerId(), featureChange.getFeature()))
+                        .peek(adId -> log.info("Ad {} for customerID {} was unbooked? {}", adId, featureChange.getCustomerId(), adId.isPresent()))
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .collect(Collectors.toList()));
             } else {
                 log.warn("Could not do anything with {}", featureChange);
             }
         }
-
+        return builder.build();
     }
 
-    private void book(Ad ad,
-                      Long customerId,
-                      UserFeature.Feature feature) {
+    private Optional<Long> book(Ad ad,
+                                Long customerId,
+                                UserFeature.Feature feature) {
 
-        Optional<BookingResponse> result = bookingRepo.put(
+        return bookingRepo.put(
                 customerId,
                 ad.getAdId(),
-                feature.toString(), "initiator");
+                feature.toString(), "initiator")
+                .map(result -> {
+                    log.info("Book result for ad {}, customerId {} and feature {}: {}", ad, customerId, feature, result);
+                    return ad.getAdId();
+                });
 
-        log.info("Book result for ad {}, customerId {} and feature {}: {}", ad, customerId, feature, result);
     }
 
-    private void unbook(Long adId,
-                        Long customerId,
-                        UserFeature.Feature feature) {
+    private Optional<Long> unbook(Long adId,
+                                  Long customerId,
+                                  UserFeature.Feature feature) {
 
-        Optional<UnbookingResponse> result = bookingRepo.delete(
+        return bookingRepo.delete(
                 customerId,
                 adId,
                 feature.toString(),
-                "initiator");//TODO initiator
+                "initiator")
+                .map(result -> {
+                    log.info("Unbook result for ad {}, customerId {} and feature {}: {}", adId, customerId, feature, result);
+                    return adId;
+                });//TODO initiator
 
-        log.info("Unbook result for ad {}, customerId {} and feature {}: {}", adId, customerId, feature, result);
     }
 }
