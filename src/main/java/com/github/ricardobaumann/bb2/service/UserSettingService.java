@@ -9,6 +9,7 @@ import com.github.ricardobaumann.bb2.repo.FeatureSettingRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Stream;
@@ -54,9 +55,10 @@ public class UserSettingService {
                         feature,
                         limits.getOrDefault(feature, 0),
                         adsByFeature.getOrDefault(feature, Collections.emptySet())))
-                .forEach(featureResult -> updateUserSettings(userSettings, featureResult));
+                .forEach(featureResult -> executorService.execute(() -> updateUserSettings(userSettings, featureResult)));
     }
 
+    @Transactional
     private void updateUserSettings(UserSettings userSettings,
                                     FeatureResult featureResult) {
 
