@@ -7,6 +7,7 @@ import feign.codec.ErrorDecoder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 
 @Slf4j
 @Configuration
@@ -17,7 +18,7 @@ class FeignConfig {
         return new ErrorDecoder.Default() {
             @Override
             public Exception decode(String s, Response response) {
-                if (response.status() >= 500) {
+                if (HttpStatus.resolve(response.status()).is5xxServerError()) {
                     log.info("Retrying {}", response.status());
                     return new RetryableException("Retrying", null);
                 } else {

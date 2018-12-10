@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Stream;
 
@@ -36,6 +37,7 @@ public class UserSettingService {
         this.executorService = executorService;
     }
 
+    @Transactional
     public void process(UserSettings userSettings) {
         log.info("processing {}", userSettings);
 
@@ -48,17 +50,26 @@ public class UserSettingService {
                 .computeIfAbsent(userFeature.getFeature(), feature -> new HashSet<>())
                 .add(userFeature.getAdId()));
 
-        Stream.of(UserFeature.Feature.values())
-                .map(feature -> processFeature(
-                        userSettings.getCustomerId(),
-                        inventory,
-                        feature,
-                        limits.getOrDefault(feature, 0),
-                        adsByFeature.getOrDefault(feature, Collections.emptySet())))
-                .forEach(featureResult -> executorService.execute(() -> updateUserSettings(userSettings, featureResult)));
+        CompletableFuture.allOf(
+                Stream.of(UserFeature.Feature.values())
+                        .map(feature -> CompletableFuture.runAsync(() -> {
+                            FeatureResult result = processFeature(
+                                    userSettings.getCustomerId(),
+                                    inventory,
+                                    feature,
+                                    limits.getOrDefault(feature, 0),
+                                    adsByFeature.getOrDefault(feature, Collections.emptySet()));
+
+                            updateUserSettings(userSettings, result);
+                        }, executorService)
+                                .exceptionally(throwable -> {
+                                    log.error("Failed to process {}", userSettings);
+                                    return null;
+                                }))
+                        .toArray(CompletableFuture[]::new)
+        ).join();
     }
 
-    @Transactional
     private void updateUserSettings(UserSettings userSettings,
                                     FeatureResult featureResult) {
 

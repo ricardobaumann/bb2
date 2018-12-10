@@ -61,7 +61,7 @@ public class BookingService {
         return bookingRepo.put(
                 customerId,
                 ad.getAdId(),
-                feature.toString(), "initiator")
+                feature.toString())
                 .map(result -> {
                     log.info("Book result for ad {}, customerId {} and feature {}: {}", ad, customerId, feature, result);
                     return ad.getAdId();
@@ -76,8 +76,7 @@ public class BookingService {
         return bookingRepo.delete(
                 customerId,
                 adId,
-                feature.toString(),
-                "initiator")
+                feature.toString())
                 .map(result -> {
                     log.info("Unbook result for ad {}, customerId {} and feature {}: {}", adId, customerId, feature, result);
                     return adId;

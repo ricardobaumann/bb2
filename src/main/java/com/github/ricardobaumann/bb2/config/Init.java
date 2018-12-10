@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 @Configuration
@@ -29,9 +28,8 @@ public class Init {
     }
 
     private void init() {
-        AtomicLong atomicLong = new AtomicLong(1L);
         Stream.generate(() -> UserSettings.builder()
-                .customerId(atomicLong.getAndIncrement())
+                .customerId(1232L)
                 .processedAt(Date.from(LocalDateTime.now().minusDays(2)
                         .toInstant(ZoneOffset.UTC)))
                 .userFeatures(Arrays.asList(UserFeature.builder()
@@ -43,7 +41,7 @@ public class Init {
                                 .feature(UserFeature.Feature.pageOneAd)
                                 .build()))
                 .build())
-                .limit(10)
+                .limit(1)
                 .forEach(this::save);
     }
 
